@@ -1,0 +1,53 @@
+linters-settings:
+  mnd:
+    # List of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
+    # Default: ["argument", "case", "condition", "operation", "return", "assign"]
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    # List of numbers to exclude from analysis.
+    # The numbers should be written as string.
+    # Values always ignored: "1", "1.0", "0" and "0.0"
+    # Default: []
+    ignored-numbers:
+      - '0666'
+      - '0755'
+      - '42'
+    # List of file patterns to exclude from analysis.
+    # Values always ignored: .+_test.go
+    # Default: []
+    ignored-files:
+      - 'magic1_.+\.go$'
+    # List of function patterns to exclude from analysis.
+    # Following functions are always ignored: time.Date,
+    # strconv.FormatInt, strconv.FormatUint, strconv.FormatFloat,
+    # strconv.ParseInt, strconv.ParseUint, strconv.ParseFloat.
+    # Default: []
+    ignored-functions:
+      - '^math\.'
+      - '^http\.StatusText$'
+
+  custom:
+    example:
+      # Path is required
+      path: ./example.so
+      # Description is optional
+      description: The description of the linter. This is optional, but shows up when running golangci-lint linters.
+      # Original-url is optional, and is only used for documentation purposes.
+      original-url: github.com/golangci/example-plugin-linter
+      settings:
+        one: Foo
+        two:
+          - name: Bar
+        three:
+          name: Bar
+
+linters:
+  disable-all: true
+  enable:
+    - mnd
+    - example

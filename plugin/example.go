@@ -14,7 +14,7 @@ import (
 
 func New(conf any) ([]*analysis.Analyzer, error) {
 	// TODO: This must be implemented
-	fmt.Println("aza9")
+	fmt.Println("aza12")
 	fmt.Printf("My configuration (%[1]T): %#[1]v\n", conf)
 	fmt.Println("************************")
 	// Вывод настроек, переданных из settings
@@ -49,6 +49,11 @@ func runEmptyLineBeforeIfAnalyzer(pass *analysis.Pass) (interface{}, error) {
 				// Get the position of the "if" statement
 				pos := pass.Fset.Position(ifStmt.Pos())
 
+				// Check if 'if' is the first statement in a function or loop
+				if isFirstInBlock(ifStmt, file) {
+					return true // Skip this 'if' as it's the first in a block
+				}
+
 				// Open the source file to read the lines
 				srcFile, err := os.Open(pos.Filename)
 				if err != nil {
@@ -68,16 +73,11 @@ func runEmptyLineBeforeIfAnalyzer(pass *analysis.Pass) (interface{}, error) {
 					if i == pos.Line {
 						currentLine = scanner.Text() // Current line with "if"
 					}
+
 				}
-				os.Stderr.Write([]byte("==== Logging from plugin ====\n"))
+
 				// Trim spaces and check if the previous line is not a comment or empty
 				trimmedCurrentLine := strings.TrimSpace(currentLine)
-
-				fmt.Fprintf(os.Stderr, "%s: integer addition found: ------------------", prevLine)
-
-				fmt.Println("++++++++++")
-				os.Stdout.Write([]byte("++++++++++++++"))
-				pass.Reportf(pass.Files[0].Pos(), "Debug: анализатор начал работу")
 
 				if !strings.Contains(prevLine, "//") && strings.TrimSpace(prevLine) != "" && strings.HasPrefix(trimmedCurrentLine, "if") {
 					pass.Reportf(ifStmt.Pos(), "missing empty line before 'if' at %s:%d", pos.Filename, pos.Line)
@@ -88,4 +88,67 @@ func runEmptyLineBeforeIfAnalyzer(pass *analysis.Pass) (interface{}, error) {
 		})
 	}
 	return nil, nil
+}
+
+func isFirstInBlock(ifStmt *ast.IfStmt, file *ast.File) bool {
+	// Traverse the AST to find the parent block statement
+	var parentBlock *ast.BlockStmt
+	ast.Inspect(file, func(n ast.Node) bool {
+		block, ok := n.(*ast.BlockStmt)
+		if ok {
+			for _, stmt := range block.List {
+				if stmt == ifStmt {
+					parentBlock = block
+					return false
+				}
+			}
+		}
+		return true
+	})
+
+	// If no parent block found, return false
+	if parentBlock == nil {
+		return false
+	}
+
+	// Check if 'if' is the first statement in the block
+	for i, stmt := range parentBlock.List {
+		if stmt == ifStmt {
+			// If 'if' is the first statement in the block, return true
+			return i == 0
+		}
+	}
+
+	// Check if it's the first statement inside a function or a loop
+	return isFirstInFuncOrLoop(ifStmt, file)
+}
+
+// isFirstInFuncOrLoop checks if the 'if' statement is the first inside a function or loop
+func isFirstInFuncOrLoop(ifStmt *ast.IfStmt, file *ast.File) bool {
+	var inFuncOrLoop bool
+	ast.Inspect(file, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.FuncDecl:
+			// Check if 'if' is the first statement in the function body
+			if len(node.Body.List) > 0 && node.Body.List[0] == ifStmt {
+				inFuncOrLoop = true
+				return false
+			}
+		case *ast.ForStmt:
+			// Check if 'if' is the first statement in the for loop body
+			if len(node.Body.List) > 0 && node.Body.List[0] == ifStmt {
+				inFuncOrLoop = true
+				return false
+			}
+		case *ast.RangeStmt:
+			// Check if 'if' is the first statement in the range loop body
+			if len(node.Body.List) > 0 && node.Body.List[0] == ifStmt {
+				inFuncOrLoop = true
+				return false
+			}
+		}
+		return true
+	})
+
+	return inFuncOrLoop
 }
