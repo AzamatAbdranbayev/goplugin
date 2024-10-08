@@ -14,7 +14,7 @@ import (
 
 func New(conf any) ([]*analysis.Analyzer, error) {
 	// TODO: This must be implemented
-	fmt.Println("aza14")
+	fmt.Println("aza15")
 	fmt.Printf("My configuration (%[1]T): %#[1]v\n", conf)
 	fmt.Println("************************")
 	// Вывод настроек, переданных из settings
